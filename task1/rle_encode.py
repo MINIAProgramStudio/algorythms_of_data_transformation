@@ -1,4 +1,8 @@
-from itertools import count
+def bitewise_string(bytes):
+    output = ""
+    for byte in bytes:
+        output += format(byte, '08b') + " "
+    return output
 
 
 def encode(in_bytes):
@@ -48,8 +52,45 @@ def encode(in_bytes):
         output += bytes([len(bufer) - 1])
         output += bufer
         bufer = bytes()
-
-
-
-        #print(bufer, len(bufer), output)
     return output
+
+
+if __name__ == "__main__":
+    while True:
+        print("Please specify encoding paths.")
+        source = input("Source file path:")
+        destination = input("Destination path (leave empty for *.rle option):")
+        file = None
+        try:
+            file = open(source, "rb")
+            binary = file.read()
+        except:
+            print("Cant read the source file specified")
+            continue
+        finally:
+            file.close()
+
+        try:
+            binary = encode(bytes(binary))
+        except:
+            print("Cant encode the source file specified")
+            continue
+
+        if destination:
+            try:
+                file = open(destination,"wb")
+                file.write(binary)
+            except:
+                print("Cant write to the file specified")
+                continue
+            finally:
+                file.close()
+        else:
+            try:
+                file = open(source+".rle","wb")
+                file.write(binary)
+            except:
+                print("Cant write to the file specified")
+                continue
+            finally:
+                file.close()
