@@ -6,8 +6,11 @@ class BitArray:
     def __str__(self):
         output = ""
         for byte in self.bytes:
-            output += format(byte, '08b') + " "
-        return output[:-1-(8-self.bit_pointer)]
+            output += format(byte, '08b')[::-1]
+        if self.bit_pointer:
+            return output[:-8+self.bit_pointer]
+        else:
+            return output
 """    
 WILL BE CONTINUED IF NEEDED
 def __add__(self, other):

@@ -6,6 +6,4 @@ print(clean_bit_array)
 
 bit_stream = BitSequenceFile("files/test1.txt")
 print(bit_stream.read(4))
-print(bit_stream.read(4))
-print(bit_stream.read(4))
-print(bit_stream.read(4))
+print(bit_stream.read(16))

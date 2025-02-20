@@ -1,6 +1,6 @@
 from BitArray import BitArray
 
-def bitewise_string(bytes):
+def bytewise_string(bytes):
     output = ""
     for byte in bytes:
         output += format(byte, '08b') + " "
@@ -25,18 +25,37 @@ class BitSequenceFile:
             raise Exception("BitSequenceFile could not read file: file was opened for writing")
         self.file.seek(self.byte_pointer)
         useful_bytes = self.file.read((bits+self.bit_pointer)//8 + ((bits+self.bit_pointer)%8 > 0))
+        #useful_bytes = bytes([0b10110011, 0b10001111, 0b00001111])
+        #print("useful", bytewise_string(useful_bytes))
         self.byte_pointer += (bits+self.bit_pointer)//8
         if self.bit_pointer:
-            useful_bytes = bytes([useful_bytes[0] & (2 ** self.bit_pointer - 1)]) + useful_bytes[1:]
-            if (self.bit_pointer+bits) % 8 and bits > 7:
-                useful_bytes = useful_bytes[:-1] + bytes([useful_bytes[-1] & (2 ** 8 - 2 ** (self.bit_pointer+bits) % 8)])
+            useful_bytes = bytes([useful_bytes[0] & (2 ** 8 - 2**self.bit_pointer)]) + useful_bytes[1:]
+            #print("cropped start", bytewise_string(useful_bytes))
+            if (self.bit_pointer+bits) % 8:
+                useful_bytes = useful_bytes[:-1] + bytes([useful_bytes[-1] & (2 ** ((self.bit_pointer+bits) % 8) -1)])
+                #print("cropped end", bytewise_string(useful_bytes))
             if len(useful_bytes) > 1:
-                useful_bytes = bytes([useful_bytes[i]<<self.bit_pointer + useful_bytes[i+1]>>(8-self.bit_pointer) for i in range(len(useful_bytes)-1)])
+                shifted_bytes_a = bytes([
+                    useful_bytes[i]>>self.bit_pointer
+                    #+
+                    #useful_bytes[i+1]>>(8-self.bit_pointer)<<(8-self.bit_pointer)
+                    for i in range(len(useful_bytes)-1)])
+                shifted_bytes_b = bytes([
+                    #useful_bytes[i]>>self.bit_pointer
+                    #+
+                    useful_bytes[i+1]<<(8-self.bit_pointer)&(2**8-2**self.bit_pointer)
+                    for i in range(len(useful_bytes)-1)])
+                shifted_bytes = bytes([shifted_bytes_a[i] + shifted_bytes_b[i] for i in range(len(shifted_bytes_a))])
+                if (not (self.bit_pointer + bits) % 8) and self.bit_pointer + bits > 7:
+                    shifted_bytes += bytes([(useful_bytes[-1]<<self.bit_pointer)&255])
+                useful_bytes = shifted_bytes
             else:
-                useful_bytes = bytes([useful_bytes[0]<<self.bit_pointer])
+                useful_bytes = bytes([useful_bytes[0]>>self.bit_pointer])
+            #print("shifted", bytewise_string(useful_bytes))
         elif bits % 8:
-            useful_bytes = useful_bytes[:-1] + bytes([useful_bytes[-1] & (2**8 - 2**(bits%8))])
-
+            useful_bytes = useful_bytes[:-1] + bytes([useful_bytes[-1] & (2 ** ((self.bit_pointer+bits) % 8) -1)])
+            #print("elif cropped end", bytewise_string(useful_bytes))
+        #print("end", bytewise_string(useful_bytes))
         self.bit_pointer += bits%8
         self.bit_pointer %= 8
         return BitArray(useful_bytes, bits % 8)
