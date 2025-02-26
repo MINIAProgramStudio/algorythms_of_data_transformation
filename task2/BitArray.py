@@ -1,20 +1,24 @@
 class BitArray:
     def __init__(self, in_bytes, bit_pointer):
-        self.bytes = in_bytes
+        print(in_bytes)
+        if len(in_bytes) > 1:
+            self.bytes = in_bytes[:-1] + bytes([in_bytes[-1] & (2**bit_pointer -1)])
+        else:
+            self.bytes = bytes([in_bytes[0] & (2**bit_pointer -1)])
+
+
         self.byte_closed = bit_pointer == 8
         if self.byte_closed:
             self.bit_pointer = 0
         else:
             self.bit_pointer = bit_pointer
 
+
     def __str__(self):
         output = ""
         for byte in self.bytes:
             output += format(byte, '08b')[::-1]
-        if self.bit_pointer:
-            return output[:-8+self.bit_pointer]
-        else:
-            return output
+        return output[:len(self)]
 
     def __len__(self):
         return len(self.bytes)*8 - (8 * (not self.byte_closed)) + self.bit_pointer

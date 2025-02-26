@@ -47,7 +47,10 @@ class BitSequenceFile:
                 useful_bytes += raw_bytes[1:-1]
                 if force_debug: print("middle useful", bytewise_string(useful_bytes))
             if len(raw_bytes) > 1:
-                useful_bytes += bytes([raw_bytes[-1] & (2 ** ((self.bit_pointer+bits) % 8) -1)])
+                if (self.bit_pointer + bits) % 8:
+                    useful_bytes += bytes([raw_bytes[-1]  & (2 ** ((self.bit_pointer + bits) % 8) -1)])
+                else:
+                    useful_bytes += bytes([raw_bytes[-1]])
                 if force_debug: print("trailing useful", bytewise_string(useful_bytes))
             if len(useful_bytes) > 1:
                 shifted_bytes_a = bytes([
@@ -57,10 +60,11 @@ class BitSequenceFile:
                     (useful_bytes[i+1]<<(8-self.bit_pointer))&(2**8-1)
                     for i in range(len(useful_bytes)-1)])
                 shifted_bytes = bytes([shifted_bytes_a[i] + shifted_bytes_b[i] for i in range(len(shifted_bytes_a))])
-                if (not (self.bit_pointer + bits) % 8) and self.bit_pointer + bits > 7:
-                    shifted_bytes += bytes([(useful_bytes[-1]<<self.bit_pointer)&255])
+                if force_debug: print("a", bytewise_string(shifted_bytes_a))
+                if force_debug: print("b", bytewise_string(shifted_bytes_b))
                 if force_debug: print("shifted useful", bytewise_string(shifted_bytes))
-                if bits%8 and bits > 8:
+
+                if (bits + self.bit_pointer) % 8 > self.bit_pointer:
                     shifted_bytes += bytes([useful_bytes[-1] >> self.bit_pointer])
                     if force_debug: print("trailing shifted useful", bytewise_string(shifted_bytes))
                 useful_bytes = shifted_bytes
@@ -82,6 +86,7 @@ class BitSequenceFile:
         useful_pointer = bits % 8
         if useful_pointer == 0:
             useful_pointer = 8
+        if force_debug: print(bytewise_string(useful_bytes), useful_pointer)
         return BitArray(useful_bytes, useful_pointer)
 
     def write(self, bit_array):
@@ -128,31 +133,58 @@ class BitSequenceFile:
                 if force_debug: print("appending", bytewise_string(bytes([bit_array.bytes[0]])))
                 if force_debug: print("shifted and clamped", bytewise_string(bytes([((bit_array.bytes[0] << (self.bit_pointer)) & (2 ** 8 - 2 ** self.bit_pointer))])))
                 if force_debug: print("writing", bytewise_string(bytes([(self.opened_byte & (2 ** self.bit_pointer - 1) )+ ((bit_array.bytes[0] << (self.bit_pointer)) & (2 ** 8 - 2 ** self.bit_pointer))])))
-                self.file.write(bytes([(self.opened_byte & (2 ** self.bit_pointer - 1)) + ((bit_array.bytes[0] << (self.bit_pointer)) & (2 ** 8 - 2 ** self.bit_pointer))]))
+                self.file.write(bytes([(self.opened_byte & (2 ** self.bit_pointer - 1))+ ((bit_array.bytes[0] << (self.bit_pointer)) & (2 ** 8 - 2 ** self.bit_pointer))]))
                 self.opened_byte = (self.opened_byte & (2 ** self.bit_pointer - 1)) + ((bit_array.bytes[0] << (self.bit_pointer)) & (2 ** 8 - 2 ** self.bit_pointer))
                 self.byte_pointer += (len(bit_array) + self.bit_pointer) > 7
+                new_bit_pointer = (self.bit_pointer + len(bit_array))%8
                 if len(bit_array) - (8-self.bit_pointer) > 7:
                     # запис повних байтів
                     shifted_bytes_a = bytes([
-                        bit_array.bytes[i] >> self.bit_pointer
+                        bit_array.bytes[i] >> (8 - self.bit_pointer)
                         for i in range(len(bit_array.bytes) - 1)])
                     shifted_bytes_b = bytes([
-                        bit_array.bytes[i + 1] << (8 - self.bit_pointer) & (2 ** 8 - 2 ** self.bit_pointer)
+                        (bit_array.bytes[i + 1] << self.bit_pointer) & (2 ** 8 - 2 ** self.bit_pointer)
                         for i in range(len(bit_array.bytes) - 1)])
 
                     shifted_bytes = bytes([shifted_bytes_a[i] + shifted_bytes_b[i] for i in range(len(shifted_bytes_a))])
                     if force_debug: print("byte shift", bytewise_string(shifted_bytes))
                     self.file.write(shifted_bytes)
                     self.byte_pointer += len(shifted_bytes)
+                    self.opened_byte = 0
+                    new_bit_pointer = 0
                 # запис неповного останнього байта:
-                if len(bit_array) > 8-self.bit_pointer and (len(bit_array) + self.bit_pointer)%8:
-                    
+                    if (len(bit_array) + self.bit_pointer)%8 and len(bit_array)>8-self.bit_pointer:
+                        if force_debug: print("tail", bytewise_string(bytes([bit_array.bytes[-1] >> (8-self.bit_pointer)])))
+                        self.file.write(bytes([bit_array.bytes[-1] >> (8-self.bit_pointer)]))
+                        new_bit_pointer = (len(bit_array) + self.bit_pointer)%8
+                        if new_bit_pointer:
+                            self.opened_byte = bit_array.bytes[-1] >> (self.bit_pointer)
+                        else:
+                            self.byte_pointer += 1
+                elif self.bit_pointer + len(bit_array) > 8:
+                    tail_byte = 0
+                    if len(bit_array) > 8:
+                        tail_byte += bit_array.bytes[-2] >> (8 - self.bit_pointer)
+                        if force_debug: print("left tail", bytewise_string(bytes([tail_byte])))
+                        tail_byte += (bit_array.bytes[-1] << self.bit_pointer) & (2 ** 8 - 2 ** self.bit_pointer)
+                    else:
+                        tail_byte += bit_array.bytes[-1] >> (8 - self.bit_pointer)
+
+                    self.file.write(bytes([tail_byte]))
+
+                    if force_debug: print("elif tail", bytewise_string(bytes([tail_byte])))
+                    new_bit_pointer = (len(bit_array) + self.bit_pointer) % 8
+                    if new_bit_pointer:
+                        self.opened_byte = tail_byte
+                    else:
+                        self.byte_pointer += 1
+
+                self.bit_pointer = new_bit_pointer
+
 
 
             except:
                 raise Exception("BitSequenceFile failed to write into the file")
-            self.bit_pointer += len(bit_array)
-            self.bit_pointer %= 8
 
 
     def close(self):
