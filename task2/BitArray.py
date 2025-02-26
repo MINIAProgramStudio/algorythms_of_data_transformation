@@ -17,7 +17,8 @@ class BitArray:
             return output
 
     def __len__(self):
-        return len(self.bytes) - (8 * (not self.byte_closed)) + self.bit_pointer
+        return len(self.bytes)*8 - (8 * (not self.byte_closed)) + self.bit_pointer
+
 """    
 WILL BE CONTINUED IF NEEDED
 def __add__(self, other):
