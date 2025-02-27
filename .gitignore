@@ -162,3 +162,4 @@ cython_debug/
 *.aux
 *.gz
 *.fdb_latexmk
+task1/звіт.fls
