@@ -1,0 +1,52 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[ukrainian]{babel}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+\title{Алгоритми перетворення інформації. Завдання 2, звіт}
+\author{Михайло Голуб}
+\usepackage{graphicx}
+\graphicspath{ {./img/} }
+
+\def\code#1{\texttt{#1}}
+
+\begin{document}
+\maketitle
+\newpage
+
+\textbf{Реалізація класу \code{BitArray}:}\\\indent
+
+Цей клас зберігає бітові послідовності. 
+На вхід приймається \code{in\_bytes}, представник вбудованого класу \code{bytes}, та вказівник \code{bit\_pointer}. 
+Вбудований клас \code{bytes} це немутабельний масив чисел від 0 до 255. 
+Вказівник \code{bit\_pointer} вказує на перший біт, що не використовується в бітовій послідовності, яка знаходиться в \code{in\_bytes}. 
+Якщо послідовність займає усі біти байтів -- вказівник на вході має бути рівним 8.\\\indent
+У вхідній послідовності байтів біти послідовності зберігаються в наступному порядку: [7, 6, 5, 4, 3, 2, 1, 0], [15, \dots, 8], \dots Тобто наймолодший біт першого байту відповідає найпершому біту послідовності. \\\indent
+Методи класу \code{BitArray}:
+\begin{itemize}
+    \item \code{\_\_str\_\_} -- повертає текстову репрезентацію бітової послідовності
+    \item \code{\_\_len\_\_} -- повертає довжину бітової послідовності
+    \item \code{\_\_rshift\_\_} -- дозволяє робити \code{bit\_array $>>$  n\_bits}, що зменшує довжину послідовності шляхом видалення перших бітів
+    \item \code{\_\_lshift\_\_} -- дозволяє робити \code{bit\_array $<<$ n\_bits}, що дописує нулі на початок послідовності\\\indent
+\end{itemize}
+
+\textbf{Реалізація класу \code{BitSequenceFile}:}\\\indent
+Цей клас є реалізацією бітового потоку. 
+На вхід приймається розташування файлу та режим відкриття файлу. Режими відкриття файлу: -1 (за замовчуванням) -- читання файлу, 0 -- перезапис файлу, 1 -- продовження файлу. 
+Цей клас має методи \code{read, write, close} та атрибути \code{bit\_pointer, byte\_pointer, write\_mode, file, opened\_byte}.\\\indent
+Метод \code{read} бере на вхід аргумент \code{bits}. Метод переходить до байта на який вказує \code{byte\_pointer} та записує у \code{BitArray} байти які мають довжину не менше \code{bit\_pointer + bits} бітів, зміщує вправо \code{BitArray} на \code{bit\_pointer}, змінює значення вказівників та повертає \code{BitArray}.\\\indent
+Метод \code{write} бере на вхід \code{BitArray}. Метод переходить до байта на який вказує \code{byte\_pointer}, зміщує \code{BitArray} вліво на \code{bit\_pointer}, додає \code{opened\_byte} до першого байта з \code{BitArray}, записує останній байт з \code{BitArray} в \code{opened\_byte}, та записує байти з \code{BitArray} в файл.\\\indent
+Метод \code{close} закриває відкритий файл. Оскільки в файл записуються та перезаписуються одразу байти, дописувати нулі на кінець файлу в цьому методі не потрібно.\\\indent
+
+\textbf{Приклади роботи коду:}
+\begin{itemize}
+    \item \code{len(BitArray(bytes([0b1010]), 4))} $\rightarrow$  4; Довжина послідовністі 0101 -- 4
+    \item \code{str(BitArray(bytes([0b1010]), 4) $>>$ 1)} $\rightarrow$ 101; Змістили послідовність 0101 направо -- 101 (Зміщення направо скорочує (зменшує) послідовність, для відповідності зменшенню значення байта при зміщенні направо)
+    \item \code{str(BitArray(bytes([0b1010]), 4) $<<$ 1)} $\rightarrow$ 101; Змістили послідовність 0101 наліво -- 00101 (Зміщення наліво додає нулі (збільшує) послідовність, для відповідності збільшенню значення байта при зміщенні наліво)
+    \item \code{bit\_reader = BitSequenceFile("files/hamlet.txt")}  --  створює представника бітового потоку для читання файлу
+    \item \code{bit\_writer = BitSequenceFile("files/hamlet2.txt", 1)}  --  створює представника бітового потоку для дописування у файл
+    \item \code{bit\_writer = BitSequenceFile("files/hamlet2.txt", 0)}  --  створює представника бітового потоку для переписування (перестворення) файлу
+    \item \code{bit\_reader.read(8)} -- поверне бітову послідовність перших 8 бітів файлу
+    \item \code{bit\_writer.write(bit\_array\_instance)} -- запише \code{bit\_array\_instance} в кінець файлу (якщо файл відкритий у режимі переписування -- весь його зміст видалено і кінцеь файлу на початку).\\\indent
+\end{itemize}
+У файлі \code{test.py} наведено код який демонструє результати виконання деяких команд і переписує перші \code{read_len} байтів з файлу \code(files/hamlet.txt) в файл \code(files/hamlet2.txt) шматками довжиною від \code{min\_len} до \code{max\_len} біт
+\end{document}
