@@ -1,8 +1,10 @@
 import copy
 
-def bytewise_string(bytes):
+def bytewise_string(in_bytes):
+    if isinstance(in_bytes, int):
+        in_bytes = bytes([in_bytes])
     output = ""
-    for byte in bytes:
+    for byte in in_bytes:
         output += format(byte, '08b') + " "
     return output
 
@@ -138,23 +140,55 @@ class BitArray:
         if force_debug: print(output.bytes, output.bit_pointer, output.byte_closed)
         return output
 
+    def __repr__(self):
+        return str(self)
+
+    def concat(self, right):
+        force_debug = False
+        if self.bit_pointer:
+
+            shifted = right<<self.bit_pointer
+            if force_debug: print("shifted", shifted)
+            pointer = self.bit_pointer + right.bit_pointer
+            if force_debug: print("pointer", pointer)
+            if pointer>8:
+                pointer %= 8
+            if len(self)>8:
+                if len(right)>8:
+                    if force_debug: print("ll")
+                    return BitArray(self.bytes[:-1]+ bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
+                else:
+                    if force_debug: print("ls")
+                    return BitArray(self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
+            else:
+                if len(right)>8:
+                    if force_debug: print("sl")
+                    return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
+                else:
+                    if force_debug: print("ss")
+                    return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
+        else:
+            if self.byte_closed:
+                pointer = right.bit_pointer
+                if pointer == 0:
+                    pointer = 8
+                return BitArray(self.bytes + right.bytes, pointer)
+            else:
+                return copy.deepcopy(right)
 
 
-
+    def __eq__(self, other):
+        if (
+            self.bytes == other.bytes
+        ) and (
+            self.bit_pointer == other.bit_pointer
+        ) and (
+            self.byte_closed == other.byte_closed
+        ):
+            return True
+        else:
+            return False
 """    
-WILL BE CONTINUED IF NEEDED
-def __add__(self, other):
-        shifted = bytes([
-            other[i]//self.bit_pointer + other[i+1]%self.bit_pointer for i in range(len(other)-1)
-        ])
-        total = self.bytes + shifted
-        if not self.bit_pointer + other.bit_pointer % 8:
-            total = total[:-1]
-        return BitArray(total, self.bit_pointer + other.bit_pointer % 8)
-
-    def __len__(self):
-        return min(len(self.bytes*8 - 8 + self.bit_pointer), 0)
-
     def __and__(self, other):
         total_length = max(len(self), len(other))
 """
