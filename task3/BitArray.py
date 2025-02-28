@@ -146,14 +146,13 @@ class BitArray:
     def concat(self, right):
         force_debug = False
         if self.bit_pointer:
-
-            shifted = right<<self.bit_pointer
+            shifted = right<<self.bit_pointer # якщо ліва частина не завершується повним байтом -- зсунути праву частину
             if force_debug: print("shifted", shifted)
             pointer = self.bit_pointer + right.bit_pointer
             if force_debug: print("pointer", pointer)
             if pointer>8:
                 pointer %= 8
-            if len(self)>8:
+            if len(self)>8: # зробити конкатинацію відповідно до довжин лівої та правої частин
                 if len(shifted)>8:
                     if force_debug: print("ll")
                     return BitArray(self.bytes[:-1]+ bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
@@ -168,13 +167,13 @@ class BitArray:
                     if force_debug: print("ss")
                     return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
         else:
-            if self.byte_closed:
+            if self.byte_closed: # якщо останній байт закритий (ліва бітова послідовність існує) зробити конкатинацію
                 pointer = right.bit_pointer
                 if pointer == 0:
                     pointer = 8
                 return BitArray(self.bytes + right.bytes, pointer)
             else:
-                return copy.deepcopy(right)
+                return copy.deepcopy(right) # якщо останній байт відкритий (ліва бітова послідовність НЕ існує) -- повернути праву частину
 
 
     def __eq__(self, other):
@@ -185,28 +184,28 @@ class BitArray:
         ) and (
             self.byte_closed == other.byte_closed
         ):
-            return True
+            return True # Бітові послідовності рівні тоді і тільки тоді, коли їх байти та вказівники рівні.
         else:
             return False
 
     def __hash__(self):
-        return hash(self.bytes)
+        return hash(self.bytes) #Геш бітової послідовності рівний гешу її байтів
 
     def __getitem__(self, key):
         force_debug = False
         light_debug = False
-        if isinstance(key, int):
+        if isinstance(key, int): # якщо потрібно отримати один біт
             if key >= len(self):
                 raise IndexError("Index outside of BitArray")
             elif key >= 0:
-                byte = self.bytes[key//8]
-                bit = (byte>>(key%8))&1
-                return BitArray(bytes([bit]), 1)
+                byte = self.bytes[key//8] # вибираємо необхідний байт
+                bit = (byte>>(key%8))&1 # ставимо біт на нульову позицію
+                return BitArray(bytes([bit]), 1) # повертаємо біт в BitArray
             else:
                 byte = self.bytes[(len(self) - key) // 8]
                 bit = (byte >> ((8-key) % 8)) & 1
                 return BitArray(bytes([bit]), 1)
-        elif isinstance(key, slice):
+        elif isinstance(key, slice): # Якщо потрібно отримати підпослідовність (крок завжди 1)
             key = key.indices(len(self))
             start = key[0]
             stop = key[1]
@@ -216,20 +215,20 @@ class BitArray:
             if force_debug or light_debug: print(start, stop, bit_pointer)
             output = copy.deepcopy(self)
             if force_debug: print(output)
-            output.bytes = output.bytes[:stop // 8 + int((stop%8)>0)]
+            output.bytes = output.bytes[:stop // 8 + int((stop%8)>0)] # залишити лише ті байти які йдуть перед кінцем послідовності
             if force_debug: print(output)
-            if len(output.bytes) > 1:  # якщо байтів щонайменше 2 -- занулити біти в останньому байті, що йдуть не перед вказівником
-                output.bytes = output.bytes[:-1] + bytes([output.bytes[-1] & (2 ** bit_pointer - 1)])
-            elif len(output.bytes) == 1:  # якщо байт один -- занулити біти в ньому, що йдуть не перед вказівником
+            if len(output.bytes) > 1:
+                output.bytes = output.bytes[:-1] + bytes([output.bytes[-1] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
+            elif len(output.bytes) == 1:
                 if force_debug: print(output.bytes[0], bin(2 ** bit_pointer - 1))
-                output.bytes = bytes([output.bytes[0] & (2 ** bit_pointer - 1)])
+                output.bytes = bytes([output.bytes[0] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
             output.bit_pointer = stop%8
             if output.bit_pointer == 0 and stop>0:
                 output.byte_closed = True
             else:
                 output.byte_closed = False
             if start:
-                output>>start
+                output>>start # змістити бітову підпослідовність на початок послідовності
             if force_debug: print(output, output.bit_pointer, output.byte_closed)
             if force_debug: print()
             return output
