@@ -1,3 +1,6 @@
+from importlib.metadata import Lookup
+
+from BitArray import BitArray, bytewise_string
 from ByteCounter import ByteCounter
 import copy
 
@@ -51,8 +54,58 @@ class HuffmanTree:
         if force_debug: print(self.nodes)
         if force_debug: print(opened_nodes)
         self.root_key = node_key
+        self.create_encoding_lookup()
 
-    def encode(self, byte):
-        pass
+    def create_encoding_lookup(self):
+        encoding_lookup = {}
+        for key in self.nodes:
+            if key > 255:
+                continue # якщо обраний запис не байт -- нічого не робити
+            code = BitArray(bytes([0]), 0)
+            selected_key = key
+            while True:
+                parent_key = self.nodes[selected_key][3]
+                if self.nodes[parent_key][1] == selected_key:
+                    code = code<<1
+                elif self.nodes[parent_key][2] == selected_key:
+                    code = code<<1
+                    if len(code.bytes) > 1:
+                        code.bytes = bytes([code.bytes[0]+1]) + code.bytes[1:]
+                    else:
+                        code.bytes = bytes([code.bytes[0]+1])
+                else:
+                    raise Exception("HuffmanTree: node has parent that does not have said node as a child")
+                selected_key = parent_key
+                if selected_key == self.root_key:
+                    break
+            encoding_lookup[key] = code
+        self.encoding_lookup = encoding_lookup
+
+    def encode(self, object):
+        force_debug = True
+        if isinstance(object, int):
+            if object > 255 or object < 0:
+                raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
+            return self.encoding_lookup[object]
+        elif isinstance(object, bytes):
+            output = BitArray([0],0)
+            for byte in object:
+                code = self.encoding_lookup[byte]
+                output = code.concat(output)
+            return output
+        elif isinstance(object, BitArray):
+            output = BitArray([0], 0)
+            for byte in object.bytes:
+                if force_debug: print("looking for", bytewise_string(byte))
+                code = self.encoding_lookup[byte]
+                if force_debug: print("code", code)
+                output = output.concat(code)
+                if force_debug: print("output",output)
+                print()
+            return output
+        else:
+            raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
+    
+
 
 
