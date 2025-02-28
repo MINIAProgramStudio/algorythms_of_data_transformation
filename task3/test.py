@@ -1,5 +1,5 @@
 from ByteCounter import ByteCounter
+from HuffmanTree import HuffmanTree
 
 bc = ByteCounter("files/hamlet.txt")
-bc.count_bytes()
-print(bc)
+ht = HuffmanTree(bc)
