@@ -154,14 +154,14 @@ class BitArray:
             if pointer>8:
                 pointer %= 8
             if len(self)>8:
-                if len(right)>8:
+                if len(shifted)>8:
                     if force_debug: print("ll")
                     return BitArray(self.bytes[:-1]+ bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
                 else:
                     if force_debug: print("ls")
                     return BitArray(self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
             else:
-                if len(right)>8:
+                if len(shifted)>8:
                     if force_debug: print("sl")
                     return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
                 else:
@@ -188,6 +188,52 @@ class BitArray:
             return True
         else:
             return False
+
+    def __hash__(self):
+        return hash(self.bytes)
+
+    def __getitem__(self, key):
+        force_debug = False
+        light_debug = False
+        if isinstance(key, int):
+            if key >= len(self):
+                raise IndexError("Index outside of BitArray")
+            elif key >= 0:
+                byte = self.bytes[key//8]
+                bit = (byte>>(key%8))&1
+                return BitArray(bytes([bit]), 1)
+            else:
+                byte = self.bytes[(len(self) - key) // 8]
+                bit = (byte >> ((8-key) % 8)) & 1
+                return BitArray(bytes([bit]), 1)
+        elif isinstance(key, slice):
+            key = key.indices(len(self))
+            start = key[0]
+            stop = key[1]
+            bit_pointer = stop%8
+            if bit_pointer == 0 and stop>0:
+                bit_pointer = 8
+            if force_debug or light_debug: print(start, stop, bit_pointer)
+            output = copy.deepcopy(self)
+            if force_debug: print(output)
+            output.bytes = output.bytes[:stop // 8 + int((stop%8)>0)]
+            if force_debug: print(output)
+            if len(output.bytes) > 1:  # якщо байтів щонайменше 2 -- занулити біти в останньому байті, що йдуть не перед вказівником
+                output.bytes = output.bytes[:-1] + bytes([output.bytes[-1] & (2 ** bit_pointer - 1)])
+            elif len(output.bytes) == 1:  # якщо байт один -- занулити біти в ньому, що йдуть не перед вказівником
+                if force_debug: print(output.bytes[0], bin(2 ** bit_pointer - 1))
+                output.bytes = bytes([output.bytes[0] & (2 ** bit_pointer - 1)])
+            output.bit_pointer = stop%8
+            if output.bit_pointer == 0 and stop>0:
+                output.byte_closed = True
+            else:
+                output.byte_closed = False
+            if start:
+                output>>start
+            if force_debug: print(output, output.bit_pointer, output.byte_closed)
+            if force_debug: print()
+            return output
+
 """    
     def __and__(self, other):
         total_length = max(len(self), len(other))
