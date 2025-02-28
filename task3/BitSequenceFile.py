@@ -27,7 +27,9 @@ class BitSequenceFile:
         except:
             raise Exception("BitSequenceFile could not open file specified")
 
-    def read(self, bits):
+    def read(self, bits = None):
+        if bits is None:
+            bits = self.file_length*8
         if self.byte_pointer*8 + self.bit_pointer + bits > self.file_length * 8:
             bits = self.file_length - (self.byte_pointer*8 + self.bit_pointer)
             if bits < 0:
