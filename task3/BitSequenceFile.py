@@ -13,6 +13,7 @@ class BitSequenceFile:
         self.bit_pointer = 0 # points to the unread/unwritten bit in unresolved byte
         self.byte_pointer = 0 # points to the position of the unresolved byte
         self.write_mode = write_mode
+        self.file_path = file_path
         if self.write_mode > -1:
             self.opened_byte = 0
         try:
@@ -26,10 +27,15 @@ class BitSequenceFile:
                     self.file = open(file_path, "wb")
             else:
                 self.file = open(file_path, "rb")
+                self.file_length = os.path.getsize(file_path)
         except:
             raise Exception("BitSequenceFile could not open file specified")
 
     def read(self, bits):
+        if self.byte_pointer*8 + self.bit_pointer + bits > self.file_length * 8:
+            bits = self.file_length - (self.byte_pointer*8 + self.bit_pointer)
+            if bits < 0:
+                return BitArray(bytes([0]), 0)
         if self.write_mode != -1:
             raise Exception("BitSequenceFile could not read file: file was opened for writing")
         self.file.seek(self.byte_pointer) # перейти в відкритий байт
