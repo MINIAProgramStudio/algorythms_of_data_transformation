@@ -1,14 +1,8 @@
 import os
 
-from BitArray import BitArray
+from BitArray import BitArray, bytewise_string
 
-def bytewise_string(in_bytes):
-    if isinstance(in_bytes, int):
-        in_bytes = bytes([in_bytes])
-    output = ""
-    for byte in in_bytes:
-        output += format(byte, '08b') + " "
-    return output
+
 
 class BitSequenceFile:
     def __init__(self, file_path, write_mode = -1):
