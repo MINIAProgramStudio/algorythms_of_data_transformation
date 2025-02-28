@@ -2,9 +2,11 @@ import os
 
 from BitArray import BitArray
 
-def bytewise_string(bytes):
+def bytewise_string(in_bytes):
+    if isinstance(in_bytes, int):
+        in_bytes = bytes([in_bytes])
     output = ""
-    for byte in bytes:
+    for byte in in_bytes:
         output += format(byte, '08b') + " "
     return output
 
