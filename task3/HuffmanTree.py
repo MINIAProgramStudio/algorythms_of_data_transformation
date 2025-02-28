@@ -55,6 +55,7 @@ class HuffmanTree:
         if force_debug: print(opened_nodes)
         self.root_key = node_key
         self.create_encoding_lookup()
+        self.create_decoding_lookup()
 
     def create_encoding_lookup(self):
         encoding_lookup = {}
@@ -82,7 +83,7 @@ class HuffmanTree:
         self.encoding_lookup = encoding_lookup
 
     def encode(self, object):
-        force_debug = True
+        force_debug = False
         if isinstance(object, int):
             if object > 255 or object < 0:
                 raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
@@ -101,11 +102,43 @@ class HuffmanTree:
                 if force_debug: print("code", code)
                 output = output.concat(code)
                 if force_debug: print("output",output)
-                print()
+                if force_debug: print()
             return output
         else:
             raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
-    
 
+    def create_decoding_lookup(self):
+        decoding_lookup = {}
+        for key in self.encoding_lookup.keys():
+            decoding_lookup[self.encoding_lookup[key]] = key
+        self.decoding_lookup = decoding_lookup
 
+    def decode(self, bit_array):
+        force_debug = False
 
+        min_len = min([len(key) for key in self.decoding_lookup.keys()])
+        max_len = max([len(key) for key in self.decoding_lookup.keys()])
+        if force_debug: print("minmax", min_len, max_len)
+        code_found = True
+        output = bytes([])
+        while len(bit_array) and code_found:
+            # if force_debug: print(len(bit_array), bytewise_string(output))
+            code_found = False
+            code_len = min_len
+            code = None
+            while code_len <= max_len:
+                code = bit_array[0:code_len]
+                if code in self.decoding_lookup.keys():
+                    output += bytes([self.decoding_lookup[code]])
+                    code_found = True
+                    break
+                code_len += 1
+                # if force_debug: print(code, code_len, False)
+            if not code_found:
+                raise Exception("HuffmanTree: unknown bit sequence, unable to decode")
+            bit_array = bit_array>>code_len
+            if force_debug: print(code, bit_array)
+            if force_debug: print(bytewise_string(self.decoding_lookup[code]))
+            if force_debug: print()
+
+        return output
