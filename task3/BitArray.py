@@ -200,7 +200,7 @@ class BitArray:
         if isinstance(key, int): # якщо потрібно отримати один біт
             if force_debug or light_debug: print(key)
             if key >= len(self):
-                raise IndexError("Index outside of BitArray")
+                raise IndexError("Index outside of BitArray, recieved " + str(key) + " while length is " + str(len(self)))
             elif key >= 0:
                 byte = self.bytes[key//8] # вибираємо необхідний байт
                 bit = (byte>>(key%8))&1 # ставимо біт на нульову позицію

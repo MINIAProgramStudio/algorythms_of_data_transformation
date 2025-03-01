@@ -46,10 +46,12 @@ print(BitArray(b, 8))
 print()
 print("-----")
 
+
 wrongs = [i for i in range(min(len(b), len(text.bytes))) if b[i] != text.bytes[i]]
 wrongs_b = bytes([b[i] for i in wrongs])
 wrongs_text = bytes([text.bytes[i] for i in wrongs])
 print(read_len, len(text.bytes), len(b), wrongs)
+
 
 """
 for i in range(len(wrongs)):
@@ -60,4 +62,5 @@ for i in range(len(wrongs)):
     decode = ht.decode(code)
     print(bytewise_string(decode))
     print()
+
 """
