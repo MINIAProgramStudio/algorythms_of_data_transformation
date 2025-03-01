@@ -8,7 +8,7 @@ from HuffmanTree import HuffmanTree
 
 
 def huffman_encode(path_from, path_to = None, chunk = 256):
-    if path_to is None:
+    if path_to is None or not path_to:
         path_to = path_from + ".huff"
     bc = ByteCounter(path_from)
     bc.count_bytes()
@@ -31,7 +31,7 @@ def huffman_encode(path_from, path_to = None, chunk = 256):
     bit_reader.close()
 
 def huffman_decode(path_from, path_to = None, chunk = 1024):
-    if path_to is None and path_from[-5:] == ".huff":
+    if (path_to is None or not path_to) and path_from[-5:] == ".huff":
         path_to = path_from[:-5]
     ht = HuffmanTree(None)
 
@@ -41,7 +41,7 @@ def huffman_decode(path_from, path_to = None, chunk = 1024):
     #визначаємо кількість розгалужень
     bit_array = bit_reader.read(8)
     forks = bit_array.bytes[0]
-    print(forks)
+    #print(forks)
 
     fork_nodes = {}
     #записуємо розгалуження
@@ -65,7 +65,7 @@ def huffman_decode(path_from, path_to = None, chunk = 1024):
             ht.nodes[right][3] = key
         else:
             ht.nodes[right] = [None, None, None, key]
-    print(ht.nodes)
+    #print(ht.nodes)
 
     # шукаємо корінь
     for key in ht.nodes.keys():
@@ -76,15 +76,15 @@ def huffman_decode(path_from, path_to = None, chunk = 1024):
     #збираємо дерево
     ht.create_encoding_lookup()
     ht.create_decoding_lookup()
-    print(ht.decoding_lookup)
+    #print(ht.decoding_lookup)
 
     #декодуємо
     huff = bit_reader.read()
     bit_pointer = int(huff.bytes[-1])
-    print(bit_pointer)
+    #print(bit_pointer)
     huff.bytes = huff.bytes[:-1]
     huff.bit_pointer = bit_pointer
     if bit_pointer:
         huff.byte_closed = False
-    print(len(huff))
+    #print(len(huff))
     destination.write(ht.decode(huff, True))

@@ -5,8 +5,8 @@ from HuffmanTree import HuffmanTree
 from time import time, sleep
 from HuffmanFileCoder import huffman_encode, huffman_decode
 
-source = "files/Дмитро.mp4"
+source = "files/ДЗ6.pdf"
 
 huffman_encode(source)
 sleep(1)
-huffman_decode(source + ".huff", "files/Дмитро_decoded.mp4")
+huffman_decode(source + ".huff", "files/ДЗ6_decoded.pdf")
