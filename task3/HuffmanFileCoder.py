@@ -8,7 +8,7 @@ from HuffmanTree import HuffmanTree
 
 
 def huffman_encode(path_from, path_to = None, chunk = 256):
-    if path_to is None:
+    if path_to is None or not path_to:
         path_to = path_from + ".huff"
     bc = ByteCounter(path_from)
     bc.count_bytes()
@@ -31,7 +31,7 @@ def huffman_encode(path_from, path_to = None, chunk = 256):
     bit_reader.close()
 
 def huffman_decode(path_from, path_to = None, chunk = 1024):
-    if path_to is None and path_from[-5:] == ".huff":
+    if (path_to is None or not path_to) and path_from[-5:] == ".huff":
         path_to = path_from[:-5]
     ht = HuffmanTree(None)
 
