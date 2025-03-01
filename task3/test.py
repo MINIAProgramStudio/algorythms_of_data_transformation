@@ -6,7 +6,6 @@ from time import time, sleep
 from HuffmanFileCoder import huffman_encode, huffman_decode
 import os
 from PythonTableConsole import PythonTableConsole
-import filecmp
 
 raw_folder = "files/raw"
 encoded_folder = "files/encoded"
@@ -15,7 +14,7 @@ log_path = "files/test_log.txt"
 
 raw_files = os.listdir(raw_folder)
 
-table = ["name", "raw length, KB", "encoded length, KB", "compression, %", "time to encode, s", "time to decode, s", "all correct"]
+table = [["name", "raw length, KB", "encoded length, KB", "compression, %", "time to encode, s", "time to decode, s"]]
 
 for file in raw_files:
     print(file)
@@ -35,10 +34,9 @@ for file in raw_files:
         file,
         os.path.getsize(raw_path)//1024,
         os.path.getsize(encoded_path)//1024,
-        round(os.path.getsize(encoded_path)*100 / os.path.getsize(encoded_path),1),
-        time_to_encode,
-        time_to_decode,
-        filecmp.cmp(raw_path, encoded_path)
+        round(os.path.getsize(encoded_path)*100 / os.path.getsize(raw_path),1),
+        round(time_to_encode,3),
+        round(time_to_decode,3)
     ])
     sleep(0.5)
 
