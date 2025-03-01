@@ -11,10 +11,11 @@ def bytewise_string(in_bytes):
 
 class BitArray:
     def __init__(self, in_bytes, bit_pointer):
-        if len(in_bytes) > 1: # якщо байтів щонайменше 2 -- занулити біти в останньому байті, що йдуть не перед вказівником
-            self.bytes = in_bytes[:-1] + bytes([in_bytes[-1] & (2**bit_pointer -1)])
-        elif len(in_bytes) == 1: # якщо байт один -- занулити біти в ньому, що йдуть не перед вказівником
-            self.bytes = bytes([in_bytes[0] & (2**bit_pointer -1)])
+        if isinstance(in_bytes, bytearray):
+            self.bytes = in_bytes
+        else:
+            self.bytes = bytearray(in_bytes)
+        self.bytes[-1] = in_bytes[-1] & (2**bit_pointer -1) # занулити біти після вказівника
 
         self.byte_closed = bit_pointer == 8 # якщо передано вказівник 8, значить останній байт повністю використаний
 
@@ -53,21 +54,21 @@ class BitArray:
                 other %= 8
                 if force_debug: print("len bytes after cut", len(output.bytes))
             else: # якшо довжина (в байтах) зсуву більше ніж кількість байтів -- повернути пустий BitArray
-                return BitArray(bytes([0]),0)
+                return BitArray(bytearray([0]),0)
         if other: # якщо залишкова довжина зсуву не нуль
-            remains = bytes([
+            remains = bytearray([
                 byte>>other for byte in output.bytes
             ]) # залишок від існуючих байтів
-            transfer = bytes([
+            transfer = bytearray([
                 (byte<<(8-other))&255 for byte in output.bytes
             ]) # шматки байтів які треба зсунути в попередній байт
             if len(remains) > 1:
-                output.bytes = bytes([
+                output.bytes = bytearray([
                     remains[i] + transfer[i+1] for i in range(len(remains) -1)
                 ]) # сума залишків та шматків наступних байтів
-                output.bytes += bytes([remains[-1]]) # останній залишок, що не має відповідного шматка наступного байту
+                output.bytes += bytearray([remains[-1]]) # останній залишок, що не має відповідного шматка наступного байту
             else:
-                output.bytes = bytes([remains[-1]])  # оскільки байт один, то наступного байту не існує і зсувати з нього в цей один байт нічого
+                output.bytes = bytearray([remains[-1]])  # оскільки байт один, то наступного байту не існує і зсувати з нього в цей один байт нічого
             if output.byte_closed:
                 output.bit_pointer = 8 - other # вказівник на незаповнений біт
             else:
@@ -78,7 +79,7 @@ class BitArray:
                     output.bytes = output.bytes[:-1] # викинути останній байт
                     output.bit_pointer %= 8 # оскільки останній байт викинуто, вказівник беремо за модулем і тепер він вказує на біт в останньому наявному байті
                 else: # якщо байт один, а вказівник менше 0, значить потрібно повернути пустий BitArray
-                    output.bytes = bytes([0])
+                    output.bytes = bytearray([0])
                     output.bit_pointer = 0
             output.byte_closed = False # оскільки максимальна довжина бітового зсуву після байтового зсуву 7 і вказівник був менший за нуль, то останній байт не може бути закритим
         if force_debug: print(output.bytes, output.bit_pointer, output.byte_closed)
@@ -92,26 +93,26 @@ class BitArray:
             raise Exception("VALUE_ERROR: BitArray can shift bits only by positive integer or zero")
         output = copy.deepcopy(self)
         if other > 7: # якщо довжина зсуву більше одного байта -- дописати в початок нульові байти і перейти до зсуву на відстань менше 8 біт
-            output.bytes = bytes([0]*(other//8)) + output.bytes
+            output.bytes = bytearray([0]*(other//8)) + output.bytes
             other %= 8
         if other: # якщо залишкова довжина зсуву не нуль
-            remains = bytes([
+            remains = bytearray([
                 (byte<<other)&255 for byte in output.bytes
             ]) # залишок від існуючих байтів
-            transfer = bytes([
+            transfer = bytearray([
                 byte>>(8-other) for byte in output.bytes
             ]) # шматки байтів які треба зсунути в наступний байт
             if force_debug: print("remains",bytewise_string(remains))
             if force_debug: print("transfer",bytewise_string(transfer))
             if len(remains) > 1:
-                output.bytes = bytes([remains[0]]) # залишки першого байта
+                output.bytes = bytearray([remains[0]]) # залишки першого байта
                 if force_debug: print("first byte remains", bytewise_string(output.bytes))
                 output.bytes += bytes([
                     transfer[i-1] + remains[i] for i in range(1,len(transfer))
                 ])
                 if force_debug: print("remains+transfer", bytewise_string(output.bytes))
                 if ((output.bit_pointer+other) % 8 and output.bit_pointer+other > 7) or self.byte_closed:
-                    output.bytes += bytes([transfer[-1]]) # якщо відбувся перехід в наступний байт -- додати байт для залишку з останнього (а тепер передостаннього) байта
+                    output.bytes += bytearray([transfer[-1]]) # якщо відбувся перехід в наступний байт -- додати байт для залишку з останнього (а тепер передостаннього) байта
                     if force_debug: print("transfer", bytewise_string(output.bytes))
                     output.bit_pointer += other
                     if output.bit_pointer % 8:  # якщо вказівник не на початку байта -- позначити останній байт як відкритий
@@ -130,9 +131,9 @@ class BitArray:
                         output.byte_closed = True
             else:
                 if output.bit_pointer + output.byte_closed*8 + other > 8:
-                    output.bytes = bytes([remains[0]]) + bytes([transfer[0]]) # якщо довжина BitArray була менше одного байта, а зсув перейшов в наступний, то вихідний BitArray має два байти: залишок першого байта і шматок першого байта
+                    output.bytes = bytearray([remains[0]]) + bytearray([transfer[0]]) # якщо довжина BitArray була менше одного байта, а зсув перейшов в наступний, то вихідний BitArray має два байти: залишок першого байта і шматок першого байта
                 else:
-                    output.bytes = bytes([remains[0]]) # якщо довжина itArray була менше одного байта і зсув не перейшов в наступний байт, то вихідний BitArray міститиме лише зсунутий оригінальний байт
+                    output.bytes = bytearray([remains[0]]) # якщо довжина itArray була менше одного байта і зсув не перейшов в наступний байт, то вихідний BitArray міститиме лише зсунутий оригінальний байт
                 output.bit_pointer += other
                 if output.bit_pointer%8: # якщо вказівник не на початку байта -- позначити останній байт як відкритий
                     output.bit_pointer %= 8
@@ -158,17 +159,17 @@ class BitArray:
             if len(self)>8: # зробити конкатинацію відповідно до довжин лівої та правої частин
                 if len(shifted)>8:
                     if force_debug: print("ll")
-                    return BitArray(self.bytes[:-1]+ bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
+                    return BitArray(self.bytes[:-1]+ bytearray([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
                 else:
                     if force_debug: print("ls")
-                    return BitArray(self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
+                    return BitArray(self.bytes[:-1] + bytearray([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
             else:
                 if len(shifted)>8:
                     if force_debug: print("sl")
-                    return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
+                    return BitArray(bytearray([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:], pointer)
                 else:
                     if force_debug: print("ss")
-                    return BitArray(bytes([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
+                    return BitArray(bytearray([int(self.bytes[-1] + shifted.bytes[0])]), pointer)
         else:
             if self.byte_closed: # якщо останній байт закритий (ліва бітова послідовність існує) зробити конкатинацію
                 pointer = right.bit_pointer
@@ -190,12 +191,13 @@ class BitArray:
             if len(self) > 8:  # зробити конкатинацію відповідно до довжин лівої та правої частин
                 if len(shifted) > 8:
                     if force_debug: print("ll")
-                    self.bytes = self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:]
+                    self.bytes[-1] = int(self.bytes[-1] + shifted.bytes[0])
+                    self.bytes += shifted.bytes[1:]
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
                 else:
                     if force_debug: print("ls")
-                    self.bytes = self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])])
+                    self.bytes[-1] = int(self.bytes[-1] + shifted.bytes[0])
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
             else:
@@ -249,11 +251,11 @@ class BitArray:
             elif key >= 0:
                 byte = self.bytes[key//8] # вибираємо необхідний байт
                 bit = (byte>>(key%8))&1 # ставимо біт на нульову позицію
-                return BitArray(bytes([bit]), 1) # повертаємо біт в BitArray
+                return BitArray(bytearray([bit]), 1) # повертаємо біт в BitArray
             else:
                 byte = self.bytes[(len(self) - key) // 8]
                 bit = (byte >> ((8-key) % 8)) & 1
-                return BitArray(bytes([bit]), 1)
+                return BitArray(bytearray([bit]), 1)
         elif isinstance(key, slice): # Якщо потрібно отримати підпослідовність (крок завжди 1)
             key = key.indices(len(self))
             key[0]
@@ -267,10 +269,10 @@ class BitArray:
             output.bytes = output.bytes[:key[1] // 8 + int((key[1]%8)>0)] # залишити лише ті байти які йдуть перед кінцем послідовності
             if force_debug: print(output)
             if len(output.bytes) > 1:
-                output.bytes = output.bytes[:-1] + bytes([output.bytes[-1] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
+                output.bytes[-1] = output.bytes[-1] & (2 ** bit_pointer - 1) # занулити біти, що не використовуються в останньому байті
             elif len(output.bytes) == 1:
                 if force_debug: print(output.bytes[0], bin(2 ** bit_pointer - 1))
-                output.bytes = bytes([output.bytes[0] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
+                output.bytes = bytearray([output.bytes[0] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
             output.bit_pointer = key[1]%8
             if output.bit_pointer == 0 and key[1]>0:
                 output.byte_closed = True
@@ -305,21 +307,21 @@ class BitArray:
     def append_bit(self, bit):
         if bit:
             if self.byte_closed:
-                self.bytes += bytes([1])
+                self.bytes += bytearray([1])
                 self.bit_pointer = 1
                 self.byte_closed = False
             else:
                 if len(self.bytes) > 1:
-                    self.bytes = self.bytes[:-1] + bytes([self.bytes[-1] + (2 ** self.bit_pointer)])
+                    self.bytes[-1] += (2 ** self.bit_pointer)
                 else:
-                    self.bytes = bytes([self.bytes[0] + (2 ** self.bit_pointer)])
+                    self.bytes = bytearray([self.bytes[0] + (2 ** self.bit_pointer)])
                 self.bit_pointer += 1
                 self.byte_closed = self.bit_pointer == 8
                 self.bit_pointer %= 8
 
         else:
             if self.byte_closed:
-                self.bytes += bytes([0])
+                self.bytes += bytearray([0])
                 self.bit_pointer = 1
                 self.byte_closed = False
             else:
