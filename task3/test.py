@@ -43,3 +43,5 @@ for file in raw_files:
 table = PythonTableConsole(table)
 table.transpose()
 print(table)
+with open(log_path, 'w') as f:
+    print(table, file=f)
