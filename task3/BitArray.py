@@ -110,7 +110,7 @@ class BitArray:
                     transfer[i-1] + remains[i] for i in range(1,len(transfer))
                 ])
                 if force_debug: print("remains+transfer", bytewise_string(output.bytes))
-                if (output.bit_pointer+other) % 8 and output.bit_pointer+other > 7:
+                if ((output.bit_pointer+other) % 8 and output.bit_pointer+other > 7) or self.byte_closed:
                     output.bytes += bytes([transfer[-1]]) # якщо відбувся перехід в наступний байт -- додати байт для залишку з останнього (а тепер передостаннього) байта
                     if force_debug: print("transfer", bytewise_string(output.bytes))
                     output.bit_pointer += other
@@ -140,7 +140,7 @@ class BitArray:
                 else: #оскільки вказівник на початку байта і максимальна довжина бітового зсуву 7, то значить останній байт записано повністю
                     output.bit_pointer = 0
                     output.byte_closed = True
-        if force_debug: print(output.bytes, output.bit_pointer, output.byte_closed)
+        if force_debug: print(bytewise_string(output.bytes), output.bit_pointer, output.byte_closed)
         return output
 
     def __repr__(self):

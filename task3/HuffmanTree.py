@@ -63,6 +63,8 @@ class HuffmanTree:
         self.create_decoding_lookup() # запит створення таблиці декодування
 
     def create_encoding_lookup(self):
+        force_debug = False
+        if force_debug: print("creating encoding lookup")
         encoding_lookup = {}
         for key in self.nodes: # для кожної вершини в дереві
             if key > 255:
@@ -77,10 +79,12 @@ class HuffmanTree:
                     code = BitArray(bytes([1]),1).concat(code)
                 else:
                     raise Exception("HuffmanTree: node has parent that does not have said node as a child")
+                if force_debug: print(key, code)
                 selected_key = parent_key # переходимо до батьківської вершини
                 if selected_key == self.root_key: # якщо дійшли до кореня -- завершуємо
                     break
             encoding_lookup[key] = code # записуємо код в таблицю
+            if force_debug: print()
         self.encoding_lookup = encoding_lookup # зберігаємо таблицю
 
     def encode(self, object):
@@ -109,13 +113,18 @@ class HuffmanTree:
             raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
 
     def create_decoding_lookup(self):
+        force_debug = False
+        if force_debug: print("creating decoding lookup")
         decoding_lookup = {}
         for key in self.encoding_lookup.keys():
+            if force_debug:print(key, bytewise_string(self.encoding_lookup[key].bytes), self.encoding_lookup[key].bit_pointer, self.encoding_lookup[key].byte_closed)
             decoding_lookup[self.encoding_lookup[key]] = key
+            if force_debug:print(decoding_lookup[self.encoding_lookup[key]], self.encoding_lookup[key])
+            if force_debug:print()
         self.decoding_lookup = decoding_lookup
 
     def decode(self, bit_array):
-        force_debug = True
+        force_debug = False
         time_debug = False
 
         if force_debug: print(len(bit_array.bytes), bit_array.bit_pointer)

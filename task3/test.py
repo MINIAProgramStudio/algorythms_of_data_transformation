@@ -7,21 +7,23 @@ from time import time
 bc = ByteCounter("files/LOR.txt")
 ht = HuffmanTree(bc)
 
-read_len = 8
+read_len = 2**18
 
-print(ht.encoding_lookup)
-print(ht.decoding_lookup)
+#print(ht.encoding_lookup)
+#print(ht.decoding_lookup)
 
 start = time()
 bit_reader = BitSequenceFile("files/LOR.txt")
-bit_reader.read(16*8)
-text = bit_reader.read(read_len*8)
+# bit_reader.read(16*8)
+# text = bit_reader.read(read_len*8)
+text = bit_reader.read()
 stop = time()
 
 print("reading", stop-start, "s")
 
 print()
-print(text)
+#print(text)
+#print(bytewise_string(text.bytes))
 print()
 
 start = time()
@@ -31,7 +33,8 @@ stop = time()
 print("encoding", stop-start, "s")
 
 print()
-print(a)
+#print(a)
+
 print()
 
 
@@ -42,7 +45,7 @@ stop = time()
 print("decoding", stop-start, "s")
 
 print()
-print(BitArray(b, 8))
+#print(BitArray(b, 8))
 print()
 print("-----")
 
@@ -50,7 +53,7 @@ print("-----")
 wrongs = [i for i in range(min(len(b), len(text.bytes))) if b[i] != text.bytes[i]]
 wrongs_b = bytes([b[i] for i in wrongs])
 wrongs_text = bytes([text.bytes[i] for i in wrongs])
-print(read_len, len(text.bytes), len(b), wrongs)
+print(read_len, len(text.bytes), len(b), text.bytes == b, wrongs)
 
 
 """
