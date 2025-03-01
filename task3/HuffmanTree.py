@@ -181,10 +181,16 @@ class HuffmanTree:
                     if time_debug: seek_time += time()
                     break
                 if force_debug: print(code,iter)
+
+
             if not code_found:
-                text = "HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code) + " related bytes: " + bytewise_string(bit_array.bytes[(iter-len(code))//8: (iter+1)//8])
-                warnings.warn(text)
-                break
+                if code in self.decoding_lookup.keys():
+                    output += bytes([self.decoding_lookup[code]])
+                    code_found = True
+                else:
+                    text = "HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code) + " related bytes: " + bytewise_string(bit_array.bytes[(iter-len(code))//8: (iter+1)//8+1])
+                    warnings.warn(text)
+                    break
             #if force_debug: print(code, bit_array)
             #if force_debug: print(bytewise_string(self.decoding_lookup[code]))
             if force_debug: print()

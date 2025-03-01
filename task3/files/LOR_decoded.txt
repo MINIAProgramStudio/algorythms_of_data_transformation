@@ -4440,4 +4440,4 @@ _Dear Frodo,_
      _The second part is called_THE TWO TOWERS_, since the events recounted in it are dominated by_ORTHANC_, the citadel of Saruman, and the fortress of_MINAS MORGUL_ that guards the secret entrance to Mordor; it tells of the deeds and perils of all the members of the now sundered fellowship, until the coming of the Great Darkness._
      _The third part tells of the last defence against the Shadow, and the end of the mission of the Ring-bearer in_THE RETURN OF THE KING.
 
-====================================================
+=====================================================
