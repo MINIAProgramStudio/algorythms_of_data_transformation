@@ -4,8 +4,10 @@ from ByteCounter import ByteCounter
 from HuffmanTree import HuffmanTree
 from time import time
 
+file_path = "files/LOR.txt"
+
 start = time()
-bc = ByteCounter("files/Дмитро.mp4")
+bc = ByteCounter(file_path)
 bc.count_bytes()
 stop = time()
 print("counting", stop-start, "s")
@@ -21,7 +23,7 @@ read_len = 2**18
 #print(ht.decoding_lookup)
 
 start = time()
-bit_reader = BitSequenceFile("files/Дмитро.mp4")
+bit_reader = BitSequenceFile(file_path)
 # bit_reader.read(16*8)
 # text = bit_reader.read(read_len*8)
 text = bit_reader.read()

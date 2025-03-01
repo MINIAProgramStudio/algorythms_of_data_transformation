@@ -8,11 +8,12 @@ class HuffmanTree:
     def __init__(self, source):
         if isinstance(source, ByteCounter):
             self.byte_counter = source # зберегти
+            self.build()
         else:
             self.byte_counter = None
-        self.rebuild()
 
-    def rebuild(self, recount = True):
+
+    def build(self, recount = True):
         force_debug = False
         if not (self.byte_counter is None):
             if recount: self.byte_counter.count_bytes()
@@ -185,7 +186,3 @@ class HuffmanTree:
         if time_debug: print("seek", seek_time, "s")
         if time_debug: print("concat", concat_time, "s")
         return output
-
-    def store(self):
-        output = BitArray(bytes([len(self.nodes)%256, len(self.nodes)//256]), 8)
-
