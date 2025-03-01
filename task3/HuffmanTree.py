@@ -89,6 +89,8 @@ class HuffmanTree:
 
     def encode(self, object):
         force_debug = False
+        time_debug = True
+        if time_debug: seeking_time, concat_time = 0,0
         if isinstance(object, int): # якщо кодуємо один байт
             if object > 255 or object < 0:
                 raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
@@ -97,17 +99,23 @@ class HuffmanTree:
             output = BitArray([0],0)
             for byte in object: # для кожного байта з послідовності
                 code = self.encoding_lookup[byte] # знайти код байта
-                output = code.concat(output) # записати код байта в кінець послідовності
+                output = output.concat(code) # записати код байта в кінець послідовності
             return output
         elif isinstance(object, BitArray): # див. кодування байтів
             output = BitArray([0], 0)
             for byte in object.bytes:
                 if force_debug: print("looking for", bytewise_string(byte))
+                if time_debug: seeking_time -= time()
                 code = self.encoding_lookup[byte]
+                if time_debug: seeking_time += time()
                 if force_debug: print("code", code)
+                if time_debug: concat_time -= time()
                 output = output.concat(code)
+                if time_debug: concat_time += time()
                 if force_debug: print("output",output)
                 if force_debug: print()
+            print("encoding seeking time", seeking_time, "s")
+            print("encoding concat time ", concat_time, "s")
             return output
         else:
             raise Exception("HuffmanTree can encode only integers 0-255 and bytes")
@@ -125,7 +133,7 @@ class HuffmanTree:
 
     def decode(self, bit_array):
         force_debug = False
-        time_debug = False
+        time_debug = True
 
         if force_debug: print(len(bit_array.bytes), bit_array.bit_pointer)
 
@@ -134,7 +142,7 @@ class HuffmanTree:
         if force_debug: print("minmax", min_len, max_len)
         code_found = True
         output = bytes([])
-        if time_debug: total_seek_time, total_shift_time = 0, 0
+        if time_debug: total_seek_time, concat_time = 0, 0
 
         in_len = len(bit_array)
         iter = 0
@@ -145,12 +153,15 @@ class HuffmanTree:
             if time_debug: total_seek_time -= time()
             while len(code) <= max_len:
                 if code in self.decoding_lookup.keys():
+
                     output += bytes([self.decoding_lookup[code]])
                     code_found = True
                     # iter += 1
                     break
                 elif len(code) < max_len and iter<in_len:
+                    if time_debug: concat_time -= time()
                     code = code.concat(bit_array[iter])
+                    if time_debug: concat_time += time()
                     iter += 1
                 else:
                     break
@@ -162,7 +173,7 @@ class HuffmanTree:
             if force_debug: print(bytewise_string(self.decoding_lookup[code]))
             if force_debug: print()
         if time_debug: print("seek", total_seek_time, "s")
-        if time_debug: print("shift", total_shift_time, "s")
+        if time_debug: print("concat", concat_time, "s")
         return output
 
     def store(self):
