@@ -11,6 +11,8 @@ def bytewise_string(in_bytes):
 
 class BitArray:
     def __init__(self, in_bytes, bit_pointer):
+        if not len(in_bytes):
+            in_bytes = bytearray([0])
         if isinstance(in_bytes, bytearray):
             self.bytes = in_bytes
         else:
@@ -45,7 +47,7 @@ class BitArray:
             raise Exception("TYPE_ERROR: BitArray can shift bits only by int")
         if other < 0:
             raise Exception("VALUE_ERROR: BitArray can shift bits only by positive integer or zero")
-        output = copy.deepcopy(self)
+        output = self.copy()
         if force_debug: print("rshift received request: ", other)
         if other > 7: # якщо довжина зсуву більше одного байта -- викидаємо зайві байти на початку і переходимо до зсуву на відстань менше 8 біт
             if other//8 < len(output.bytes): # якщо довжина (в байтах) зсуву менше ніж кількість байтів -- викидаємо зайві байти на початку
@@ -91,7 +93,7 @@ class BitArray:
             raise Exception("TYPE_ERROR: BitArray can shift bits only by int")
         if other < 0:
             raise Exception("VALUE_ERROR: BitArray can shift bits only by positive integer or zero")
-        output = copy.deepcopy(self)
+        output = self.copy()
         if other > 7: # якщо довжина зсуву більше одного байта -- дописати в початок нульові байти і перейти до зсуву на відстань менше 8 біт
             output.bytes = bytearray([0]*(other//8)) + output.bytes
             other %= 8
@@ -107,7 +109,7 @@ class BitArray:
             if len(remains) > 1:
                 output.bytes = bytearray([remains[0]]) # залишки першого байта
                 if force_debug: print("first byte remains", bytewise_string(output.bytes))
-                output.bytes += bytes([
+                output.bytes += bytearray([
                     transfer[i-1] + remains[i] for i in range(1,len(transfer))
                 ])
                 if force_debug: print("remains+transfer", bytewise_string(output.bytes))
@@ -177,7 +179,7 @@ class BitArray:
                     pointer = 8
                 return BitArray(self.bytes + right.bytes, pointer)
             else:
-                return copy.deepcopy(right) # якщо останній байт відкритий (ліва бітова послідовність НЕ існує) -- повернути праву частину
+                return right.copy() # якщо останній байт відкритий (ліва бітова послідовність НЕ існує) -- повернути праву частину
 
     def self_concat(self, right):
         force_debug = False
@@ -191,24 +193,24 @@ class BitArray:
             if len(self) > 8:  # зробити конкатинацію відповідно до довжин лівої та правої частин
                 if len(shifted) > 8:
                     if force_debug: print("ll")
-                    self.bytes[-1] = int(self.bytes[-1] + shifted.bytes[0])
+                    self.bytes[-1] = int((self.bytes[-1]&(2**self.bit_pointer-1)) + shifted.bytes[0])
                     self.bytes += shifted.bytes[1:]
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
                 else:
                     if force_debug: print("ls")
-                    self.bytes[-1] = int(self.bytes[-1] + shifted.bytes[0])
+                    self.bytes[-1] = int((self.bytes[-1]&(2**self.bit_pointer-1)) + shifted.bytes[0])
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
             else:
                 if len(shifted) > 8:
                     if force_debug: print("sl")
-                    self.bytes = bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:]
+                    self.bytes = bytearray([int((self.bytes[-1]&(2**self.bit_pointer-1)) + shifted.bytes[0])]) + shifted.bytes[1:]
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
                 else:
                     if force_debug: print("ss")
-                    self.bytes = bytes([int(self.bytes[-1] + shifted.bytes[0])])
+                    self.bytes = bytearray([int((self.bytes[-1]&(2**self.bit_pointer-1)) + shifted.bytes[0])])
                     self.bit_pointer = pointer % 8
                     self.byte_closed = pointer == 8
         else:
@@ -216,11 +218,11 @@ class BitArray:
                 pointer = right.bit_pointer
                 if pointer == 0:
                     pointer = 8
-                self.bytes += right.bytes
+                self.bytes = self.bytes + right.bytes
                 self.bit_pointer = pointer%8
                 self.byte_closed = pointer == 8
             else:
-                self.bytes = right.bytes
+                self.bytes = bytearray(right.bytes)
                 self.bit_pointer = right.bit_pointer
                 self.byte_closed = right.byte_closed
 
@@ -239,7 +241,7 @@ class BitArray:
             return False
 
     def __hash__(self):
-        return hash(self.bytes) #Геш бітової послідовності рівний гешу її байтів
+        return hash(bytes(self.bytes)) #Геш бітової послідовності рівний гешу її байтів
 
     def __getitem__(self, key):
         force_debug = False
@@ -264,7 +266,7 @@ class BitArray:
             if bit_pointer == 0 and key[1]>0:
                 bit_pointer = 8
             if force_debug or light_debug: print(key[0], key[1], bit_pointer)
-            output = copy.deepcopy(self)
+            output = self.copy()
             if force_debug: print(output)
             output.bytes = output.bytes[:key[1] // 8 + int((key[1]%8)>0)] # залишити лише ті байти які йдуть перед кінцем послідовності
             if force_debug: print(output)
@@ -311,10 +313,7 @@ class BitArray:
                 self.bit_pointer = 1
                 self.byte_closed = False
             else:
-                if len(self.bytes) > 1:
-                    self.bytes[-1] += (2 ** self.bit_pointer)
-                else:
-                    self.bytes = bytearray([self.bytes[0] + (2 ** self.bit_pointer)])
+                self.bytes[-1] += (2 ** self.bit_pointer)
                 self.bit_pointer += 1
                 self.byte_closed = self.bit_pointer == 8
                 self.bit_pointer %= 8
@@ -328,6 +327,9 @@ class BitArray:
                 self.bit_pointer += 1
                 self.byte_closed = self.bit_pointer == 8
                 self.bit_pointer %= 8
+
+    def copy(self):
+        return BitArray(bytearray(self.bytes), self.bit_pointer + self.byte_closed*8)
 
 """    
     def __and__(self, other):
