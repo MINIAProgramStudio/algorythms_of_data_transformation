@@ -23,7 +23,7 @@ class BitSequenceFile:
                     self.file = open(file_path, "wb")
             else:
                 self.file = open(file_path, "rb")
-                self.file_length = os.path.getsize(file_path)
+            self.file_length = os.path.getsize(file_path)
         except:
             raise Exception("BitSequenceFile could not open file specified")
 

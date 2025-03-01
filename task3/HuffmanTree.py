@@ -2,7 +2,6 @@ from BitArray import BitArray, bytewise_string
 from ByteCounter import ByteCounter
 import copy
 from time import time
-from tqdm import tqdm
 
 class HuffmanTree:
     def __init__(self, source):
@@ -11,6 +10,7 @@ class HuffmanTree:
             self.build()
         else:
             self.byte_counter = None
+            self.nodes = {}
 
 
     def build(self, recount = True):
@@ -97,13 +97,13 @@ class HuffmanTree:
             return self.encoding_lookup[object] # повернути бітовий рядок, що відповідає байту
         elif isinstance(object, bytes): # якщо кодуємо байти
             output = BitArray([0],0)
-            for byte in tqdm(object, desc = "encoding"): # для кожного байта з послідовності
+            for byte in object: # для кожного байта з послідовності
                 code = self.encoding_lookup[byte] # знайти код байта
                 output = output.concat(code) # записати код байта в кінець послідовності
             return output
         elif isinstance(object, BitArray): # див. кодування байтів
             output = BitArray([0], 0)
-            for byte in tqdm(object.bytes, desc = "encoding"):
+            for byte in object.bytes:
                 if force_debug: print("looking for", bytewise_string(byte))
                 if time_debug: seeking_time -= time()
                 code = self.encoding_lookup[byte]
@@ -148,7 +148,6 @@ class HuffmanTree:
 
         in_len = len(bit_array)
         iter = 0
-        progress_bar = tqdm(total = in_len)
         while iter<in_len and code_found:
             if force_debug: print(len(bit_array), bytewise_string(output))
             code_found = False
@@ -158,7 +157,6 @@ class HuffmanTree:
                 code.append_bit(bit_array.get_bit(iter))
                 if time_debug: concat_time += time()
                 iter += 1
-                progress_bar.update(1)
             while len(code) <= max_len:
                 if time_debug: seek_time -= time()
                 if code in self.decoding_lookup.keys():
@@ -173,7 +171,6 @@ class HuffmanTree:
                     code.append_bit(bit_array.get_bit(iter))
                     if time_debug: concat_time += time()
                     iter += 1
-                    progress_bar.update(1)
                 else:
                     if time_debug: seek_time += time()
                     break
@@ -185,4 +182,17 @@ class HuffmanTree:
             if force_debug: print()
         if time_debug: print("seek", seek_time, "s")
         if time_debug: print("concat", concat_time, "s")
+        return output
+
+    def store(self):
+        output = BitArray(bytearray([len(self.nodes)%256, len(self.nodes)//256]), 8)
+        for key in self.nodes.keys():
+            if key>255:
+                node = self.nodes[key]
+                coded_node = BitArray(bytearray([
+                    node[1]%256,
+                    node[1]//256 + node[2]%128,
+                    node[2]//128
+                ]), 2)
+                output.self_concat(coded_node)
         return output
