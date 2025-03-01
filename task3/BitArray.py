@@ -45,10 +45,13 @@ class BitArray:
         if other < 0:
             raise Exception("VALUE_ERROR: BitArray can shift bits only by positive integer or zero")
         output = copy.deepcopy(self)
+        if force_debug: print("rshift received request: ", other)
         if other > 7: # якщо довжина зсуву більше одного байта -- викидаємо зайві байти на початку і переходимо до зсуву на відстань менше 8 біт
             if other//8 < len(output.bytes): # якщо довжина (в байтах) зсуву менше ніж кількість байтів -- викидаємо зайві байти на початку
+                if force_debug: print("cutting", other//8, "bytes")
                 output.bytes = output.bytes[other//8:]
                 other %= 8
+                if force_debug: print("len bytes after cut", len(output.bytes))
             else: # якшо довжина (в байтах) зсуву більше ніж кількість байтів -- повернути пустий BitArray
                 return BitArray(bytes([0]),0)
         if other: # якщо залишкова довжина зсуву не нуль
@@ -195,6 +198,7 @@ class BitArray:
         force_debug = False
         light_debug = False
         if isinstance(key, int): # якщо потрібно отримати один біт
+            if force_debug or light_debug: print(key)
             if key >= len(self):
                 raise IndexError("Index outside of BitArray")
             elif key >= 0:
@@ -207,28 +211,30 @@ class BitArray:
                 return BitArray(bytes([bit]), 1)
         elif isinstance(key, slice): # Якщо потрібно отримати підпослідовність (крок завжди 1)
             key = key.indices(len(self))
-            start = key[0]
-            stop = key[1]
-            bit_pointer = stop%8
-            if bit_pointer == 0 and stop>0:
+            key[0]
+            key[1]
+            bit_pointer = key[1]%8
+            if bit_pointer == 0 and key[1]>0:
                 bit_pointer = 8
-            if force_debug or light_debug: print(start, stop, bit_pointer)
+            if force_debug or light_debug: print(key[0], key[1], bit_pointer)
             output = copy.deepcopy(self)
             if force_debug: print(output)
-            output.bytes = output.bytes[:stop // 8 + int((stop%8)>0)] # залишити лише ті байти які йдуть перед кінцем послідовності
+            output.bytes = output.bytes[:key[1] // 8 + int((key[1]%8)>0)] # залишити лише ті байти які йдуть перед кінцем послідовності
             if force_debug: print(output)
             if len(output.bytes) > 1:
                 output.bytes = output.bytes[:-1] + bytes([output.bytes[-1] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
             elif len(output.bytes) == 1:
                 if force_debug: print(output.bytes[0], bin(2 ** bit_pointer - 1))
                 output.bytes = bytes([output.bytes[0] & (2 ** bit_pointer - 1)]) # занулити біти, що не використовуються в останньому байті
-            output.bit_pointer = stop%8
-            if output.bit_pointer == 0 and stop>0:
+            output.bit_pointer = key[1]%8
+            if output.bit_pointer == 0 and key[1]>0:
                 output.byte_closed = True
             else:
                 output.byte_closed = False
-            if start:
-                output>>start # змістити бітову підпослідовність на початок послідовності
+            if key[0]:
+                if force_debug: print("requestet rshift", key[0])
+                output = output>>key[0] # змістити бітову підпослідовність на початок послідовності
+
             if force_debug: print(output, output.bit_pointer, output.byte_closed)
             if force_debug: print()
             return output
