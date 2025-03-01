@@ -68,14 +68,14 @@ class HuffmanTree:
         for key in self.nodes: # для кожної вершини в дереві
             if key > 255:
                 continue # якщо обраний запис не байт (відповідно не лист) -- нічого не робити
-            code = BitArray(bytes([0]), 0) # створюємо пустий бітовий рядок
+            code = BitArray(bytearray([0]), 0) # створюємо пустий бітовий рядок
             selected_key = key
             while True:
                 parent_key = self.nodes[selected_key][3]
                 if self.nodes[parent_key][1] == selected_key: # якщо ліва дитина -- записуємо 0 в бітовий рядок
-                    code = BitArray(bytes([0]),1).concat(code)
+                    code = BitArray(bytearray([0]),1).concat(code)
                 elif self.nodes[parent_key][2] == selected_key: # якщо права дитина -- записуємо 1 в бітовий рядок
-                    code = BitArray(bytes([1]),1).concat(code)
+                    code = BitArray(bytearray([1]),1).concat(code)
                 else:
                     raise Exception("HuffmanTree: node has parent that does not have said node as a child")
                 if force_debug: print(key, code)
@@ -127,8 +127,8 @@ class HuffmanTree:
         decoding_lookup = {}
         for key in self.encoding_lookup.keys():
             if force_debug:print(key, bytewise_string(self.encoding_lookup[key].bytes), self.encoding_lookup[key].bit_pointer, self.encoding_lookup[key].byte_closed)
-            decoding_lookup[self.encoding_lookup[key]] = key
-            if force_debug:print(decoding_lookup[self.encoding_lookup[key]], self.encoding_lookup[key])
+            decoding_lookup[str(self.encoding_lookup[key])] = key
+            if force_debug:print(decoding_lookup[str(self.encoding_lookup[key])], self.encoding_lookup[key])
             if force_debug:print()
         self.decoding_lookup = decoding_lookup
 
@@ -139,20 +139,20 @@ class HuffmanTree:
         if force_debug: print(len(bit_array.bytes), bit_array.bit_pointer)
 
         min_len = min([len(key) for key in self.decoding_lookup.keys()])
-        max_len = min(max([len(key) for key in self.decoding_lookup.keys()]), len(bit_array)-1)
+        max_len = min(max([len(key) for key in self.decoding_lookup.keys()]), len(bit_array))
         if force_debug: print("minmax", min_len, max_len)
         code_found = True
-        output = bytes([])
+        output = bytearray([])
         if time_debug: seek_time, concat_time = 0, 0
 
         in_len = len(bit_array)
         iter = 0
-        progress_bar = tqdm(total = in_len)
+        progress_bar = tqdm(total = in_len,desc = "decoding")
         while iter<in_len and code_found:
             if force_debug: print(len(bit_array), bytewise_string(output))
             code_found = False
-            code = BitArray(bytes([0]),0)
-            while len(code) < min_len:
+            code = BitArray(bytearray([0]),0)
+            while len(code) < min_len and iter < in_len:
                 if time_debug: concat_time -= time()
                 code.append_bit(bit_array.get_bit(iter))
                 if time_debug: concat_time += time()
@@ -160,9 +160,9 @@ class HuffmanTree:
                 progress_bar.update(1)
             while len(code) <= max_len:
                 if time_debug: seek_time -= time()
-                if code in self.decoding_lookup.keys():
+                if str(code) in self.decoding_lookup.keys():
                     if time_debug: seek_time += time()
-                    output += bytes([self.decoding_lookup[code]])
+                    output += bytearray([self.decoding_lookup[str(code)]])
                     code_found = True
                     # iter += 1
                     break
@@ -176,9 +176,10 @@ class HuffmanTree:
                 else:
                     if time_debug: seek_time += time()
                     break
-                if force_debug: print(code,iter)
+                if force_debug: print(code,iter, code in self.decoding_lookup.keys())
             if not code_found:
-                raise Exception("HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code))
+                if iter != in_len:
+                    raise Exception("HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code))
             if force_debug: print(code, bit_array)
             if force_debug: print(bytewise_string(self.decoding_lookup[code]))
             if force_debug: print()
@@ -187,5 +188,5 @@ class HuffmanTree:
         return output
 
     def store(self):
-        output = BitArray(bytes([len(self.nodes)%256, len(self.nodes)//256]), 8)
+        output = BitArray(bytearray([len(self.nodes)%256, len(self.nodes)//256]), 8)
 

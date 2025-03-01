@@ -33,7 +33,7 @@ class BitSequenceFile:
         if self.byte_pointer*8 + self.bit_pointer + bits > self.file_length * 8:
             bits = self.file_length - (self.byte_pointer*8 + self.bit_pointer)
             if bits < 0:
-                return BitArray(bytes([0]), 0)
+                return BitArray(bytearray([0]), 0)
         if self.write_mode != -1:
             raise Exception("BitSequenceFile could not read file: file was opened for writing")
         self.file.seek(self.byte_pointer) # перейти в відкритий байт
@@ -52,7 +52,7 @@ class BitSequenceFile:
         starting_length = len(bit_array)
         force_debug = False
         if force_debug: print("write input", bytewise_string(bit_array.bytes), "len", starting_length)
-        if force_debug: print("exsiting byte", bytewise_string(bytes([self.opened_byte])))
+        if force_debug: print("exsiting byte", bytewise_string(bytearray([self.opened_byte])))
         if force_debug: print("byte", self.byte_pointer, "bit", self.bit_pointer)
         if self.write_mode == -1:
             raise Exception("BitSequenceFile could not write to file: file was opened for reading")
@@ -63,10 +63,10 @@ class BitSequenceFile:
             bit_array = bit_array<<self.bit_pointer # зсунути послідовність біт так, щоб вона починалась на вказівнику
             if force_debug: print("write shifted", bytewise_string(bit_array.bytes), "len", len(bit_array))
             if len(bit_array) > 8:
-                bit_array.bytes = bytes([bit_array.bytes[0] + self.opened_byte]) + bit_array.bytes[1:]
+                bit_array.bytes[0] = bit_array.bytes[0] + self.opened_byte
 
             else:
-                bit_array.bytes = bytes([bit_array.bytes[0]  + self.opened_byte])
+                bit_array.bytes = bytearray([bit_array.bytes[0]  + self.opened_byte])
             if force_debug: print("write existing + new", bytewise_string(bit_array.bytes), "len", len(bit_array))
             self.file.write(bit_array.bytes)
             self.bit_pointer += starting_length
