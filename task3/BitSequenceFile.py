@@ -28,16 +28,20 @@ class BitSequenceFile:
             raise Exception("BitSequenceFile could not open file specified")
 
     def read(self, bits = None):
-        if bits is None:
-            bits = self.file_length*8
-        if self.byte_pointer*8 + self.bit_pointer + bits > self.file_length * 8:
-            bits = self.file_length - (self.byte_pointer*8 + self.bit_pointer)
-            if bits < 0:
-                return BitArray(bytes([0]), 0)
         if self.write_mode != -1:
             raise Exception("BitSequenceFile could not read file: file was opened for writing")
-        self.file.seek(self.byte_pointer) # перейти в відкритий байт
-        raw_bytes = self.file.read((bits+self.bit_pointer)//8 + ((bits+self.bit_pointer)%8 > 0)) # байти в яких містяться необхідні біти
+        if bits is None:
+            bits = self.file_length*8
+            raw_bytes = self.file.read()
+        else:
+            self.file.seek(self.byte_pointer)  # перейти в відкритий байт
+            raw_bytes = self.file.read((bits + self.bit_pointer) // 8 + (
+                        (bits + self.bit_pointer) % 8 > 0))  # байти в яких містяться необхідні біти
+        if self.byte_pointer*8 + self.bit_pointer + bits > self.file_length * 8:
+            if bits < 0:
+                return BitArray(bytes([0]), 0)
+
+
         if self.bit_pointer + bits > 7 and (self.bit_pointer + bits) % 8 == 0:
             bit_array = BitArray(raw_bytes, 8) # якщо бітова послідовність завершується повним байтом
         else:

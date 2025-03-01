@@ -2,6 +2,8 @@ from BitArray import BitArray, bytewise_string
 from ByteCounter import ByteCounter
 import copy
 from time import time
+import warnings
+from tqdm import tqdm
 
 class HuffmanTree:
     def __init__(self, source):
@@ -73,6 +75,7 @@ class HuffmanTree:
             selected_key = key
             while True:
                 parent_key = self.nodes[selected_key][3]
+                if force_debug: print(selected_key, parent_key)
                 if self.nodes[parent_key][1] == selected_key: # якщо ліва дитина -- записуємо 0 в бітовий рядок
                     code = BitArray(bytes([0]),1).concat(code)
                 elif self.nodes[parent_key][2] == selected_key: # якщо права дитина -- записуємо 1 в бітовий рядок
@@ -133,7 +136,7 @@ class HuffmanTree:
             if force_debug:print()
         self.decoding_lookup = decoding_lookup
 
-    def decode(self, bit_array):
+    def decode(self, bit_array, prog = False):
         force_debug = False
         time_debug = False
 
@@ -147,17 +150,19 @@ class HuffmanTree:
         if time_debug: seek_time, concat_time = 0, 0
 
         in_len = len(bit_array)
+        if prog: progress = tqdm(total = in_len, desc = "decoding")
         iter = 0
         while iter<in_len and code_found:
-            if force_debug: print(len(bit_array), bytewise_string(output))
+            # if force_debug: print(len(bit_array), bytewise_string(output))
             code_found = False
             code = BitArray(bytes([0]),0)
-            while len(code) < min_len:
+            while len(code) < min_len-1 and iter < in_len:
                 if time_debug: concat_time -= time()
                 code.append_bit(bit_array.get_bit(iter))
                 if time_debug: concat_time += time()
                 iter += 1
-            while len(code) <= max_len:
+                if prog: progress.update(1)
+            while len(code) <= max_len and iter < in_len:
                 if time_debug: seek_time -= time()
                 if code in self.decoding_lookup.keys():
                     if time_debug: seek_time += time()
@@ -165,34 +170,43 @@ class HuffmanTree:
                     code_found = True
                     # iter += 1
                     break
-                elif len(code) < max_len and iter<in_len:
+                elif len(code) < max_len:
                     if time_debug: seek_time += time()
                     if time_debug: concat_time -= time()
                     code.append_bit(bit_array.get_bit(iter))
                     if time_debug: concat_time += time()
+                    if prog: progress.update(1)
                     iter += 1
                 else:
                     if time_debug: seek_time += time()
                     break
                 if force_debug: print(code,iter)
             if not code_found:
-                raise Exception("HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code))
-            if force_debug: print(code, bit_array)
-            if force_debug: print(bytewise_string(self.decoding_lookup[code]))
+                text = "HuffmanTree: unknown bit sequence, unable to decode. Encountered: "+str(code) + " related bytes: " + bytewise_string(bit_array.bytes[(iter-len(code))//8: (iter+1)//8])
+                warnings.warn(text)
+                break
+            #if force_debug: print(code, bit_array)
+            #if force_debug: print(bytewise_string(self.decoding_lookup[code]))
             if force_debug: print()
         if time_debug: print("seek", seek_time, "s")
         if time_debug: print("concat", concat_time, "s")
         return output
 
     def store(self):
-        output = BitArray(bytearray([len(self.nodes)%256, len(self.nodes)//256]), 8)
+        counter = 0
+        for key in self.nodes.keys():
+            if key>255:
+                counter += 1
+        output = BitArray(bytearray([counter]), 8)
         for key in self.nodes.keys():
             if key>255:
                 node = self.nodes[key]
                 coded_node = BitArray(bytearray([
                     node[1]%256,
-                    node[1]//256 + node[2]%128,
-                    node[2]//128
-                ]), 2)
+                    node[1]//256,
+                    node[2]%256,
+                    node[2]//256
+                ]), 8)
                 output.self_concat(coded_node)
+        # print(output)
         return output

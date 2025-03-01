@@ -14,6 +14,7 @@ class ByteCounter:
         for byte in file.read(): # для кожного байта у файлі
             counter[byte] += 1 # збільшити лічильник для байта на 1
         self.counter = counter # зберегти таблицю лічильників
+        file.close()
         return counter # повернути таблицю лічильників
 
     def __repr__(self):
