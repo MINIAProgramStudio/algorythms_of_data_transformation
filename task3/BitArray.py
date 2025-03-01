@@ -35,7 +35,7 @@ class BitArray:
         Якщо останній байт повністю використаний, повернути кількість байтів помножену на 8
         Якщо останній байт не повністю використаний, повернути кількість байтів помножену на 8 мінус 8 плюс вказівник (кількість біт в повних байтах та кількість біт в неповному байті)
         """
-        return len(self.bytes)*8 - (8 * (not self.byte_closed)) + self.bit_pointer
+        return max(len(self.bytes)*8 - (8 * (not self.byte_closed)) + self.bit_pointer,0)
 
 
     def __rshift__(self, other: int):
@@ -178,6 +178,51 @@ class BitArray:
             else:
                 return copy.deepcopy(right) # якщо останній байт відкритий (ліва бітова послідовність НЕ існує) -- повернути праву частину
 
+    def self_concat(self, right):
+        force_debug = False
+        if self.bit_pointer:
+            shifted = right << self.bit_pointer  # якщо ліва частина не завершується повним байтом -- зсунути праву частину
+            if force_debug: print("shifted", shifted)
+            pointer = self.bit_pointer + right.bit_pointer
+            if force_debug: print("pointer", pointer)
+            if pointer > 8:
+                pointer %= 8
+            if len(self) > 8:  # зробити конкатинацію відповідно до довжин лівої та правої частин
+                if len(shifted) > 8:
+                    if force_debug: print("ll")
+                    self.bytes = self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:]
+                    self.bit_pointer = pointer % 8
+                    self.byte_closed = pointer == 8
+                else:
+                    if force_debug: print("ls")
+                    self.bytes = self.bytes[:-1] + bytes([int(self.bytes[-1] + shifted.bytes[0])])
+                    self.bit_pointer = pointer % 8
+                    self.byte_closed = pointer == 8
+            else:
+                if len(shifted) > 8:
+                    if force_debug: print("sl")
+                    self.bytes = bytes([int(self.bytes[-1] + shifted.bytes[0])]) + shifted.bytes[1:]
+                    self.bit_pointer = pointer % 8
+                    self.byte_closed = pointer == 8
+                else:
+                    if force_debug: print("ss")
+                    self.bytes = bytes([int(self.bytes[-1] + shifted.bytes[0])])
+                    self.bit_pointer = pointer % 8
+                    self.byte_closed = pointer == 8
+        else:
+            if self.byte_closed:  # якщо останній байт закритий (ліва бітова послідовність існує) зробити конкатинацію
+                pointer = right.bit_pointer
+                if pointer == 0:
+                    pointer = 8
+                self.bytes += right.bytes
+                self.bit_pointer = pointer%8
+                self.byte_closed = pointer == 8
+            else:
+                self.bytes = right.bytes
+                self.bit_pointer = right.bit_pointer
+                self.byte_closed = right.byte_closed
+
+
 
     def __eq__(self, other):
         if (
@@ -238,6 +283,49 @@ class BitArray:
             if force_debug: print(output, output.bit_pointer, output.byte_closed)
             if force_debug: print()
             return output
+
+    def get_bit(self, key):
+        if key >= len(self):
+            raise IndexError("Index outside of BitArray, recieved " + str(key) + " while length is " + str(len(self)))
+        elif key >= 0:
+            byte = self.bytes[key // 8]  # вибираємо необхідний байт
+            bit = (byte >> (key % 8)) & 1  # ставимо біт на нульову позицію
+            if bit:
+                return True
+            else:
+                return False
+        else:
+            byte = self.bytes[(len(self) - key) // 8]
+            bit = (byte >> ((8 - key) % 8)) & 1
+            if bit:
+                return True
+            else:
+                return False
+
+    def append_bit(self, bit):
+        if bit:
+            if self.byte_closed:
+                self.bytes += bytes([1])
+                self.bit_pointer = 1
+                self.byte_closed = False
+            else:
+                if len(self.bytes) > 1:
+                    self.bytes = self.bytes[:-1] + bytes([self.bytes[-1] + (2 ** self.bit_pointer)])
+                else:
+                    self.bytes = bytes([self.bytes[0] + (2 ** self.bit_pointer)])
+                self.bit_pointer += 1
+                self.byte_closed = self.bit_pointer == 8
+                self.bit_pointer %= 8
+
+        else:
+            if self.byte_closed:
+                self.bytes += bytes([0])
+                self.bit_pointer = 1
+                self.byte_closed = False
+            else:
+                self.bit_pointer += 1
+                self.byte_closed = self.bit_pointer == 8
+                self.bit_pointer %= 8
 
 """    
     def __and__(self, other):

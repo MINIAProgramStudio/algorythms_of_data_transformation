@@ -5,14 +5,15 @@ from HuffmanTree import HuffmanTree
 from time import time
 
 start = time()
-bc = ByteCounter("files/hamlet.txt")
+bc = ByteCounter("files/Дмитро.mp4")
+bc.count_bytes()
 stop = time()
 print("counting", stop-start, "s")
 
-start = time()
+
 ht = HuffmanTree(bc)
-stop = time()
-print("creating tree", stop-start, "s")
+
+
 
 read_len = 2**18
 
@@ -20,7 +21,7 @@ read_len = 2**18
 #print(ht.decoding_lookup)
 
 start = time()
-bit_reader = BitSequenceFile("files/hamlet.txt")
+bit_reader = BitSequenceFile("files/Дмитро.mp4")
 # bit_reader.read(16*8)
 # text = bit_reader.read(read_len*8)
 text = bit_reader.read()

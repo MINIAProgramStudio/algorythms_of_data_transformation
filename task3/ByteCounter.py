@@ -7,16 +7,12 @@ class ByteCounter:
         self.file_path = file_path
         self.counter = {}
     def count_bytes(self):
-        bsf = BitSequenceFile(self.file_path)
+        file = open(self.file_path, "rb")
         counter = {}
         for i in range(0,256): # створити ключі для кожного байта
             counter[i] = 0
-        while True:
-            bit_array = bsf.read(8) #прочитати байт
-            if not bit_array.byte_closed: # якщо повернуто пусту послідовність -- кінець файла
-                break
-            segment = bit_array.bytes[0] # дістати значення байта
-            counter[segment] += 1 # збільшити лічильник для байта на 1
+        for byte in file.read(): # для кожного байта у файлі
+            counter[byte] += 1 # збільшити лічильник для байта на 1
         self.counter = counter # зберегти таблицю лічильників
         return counter # повернути таблицю лічильників
 
