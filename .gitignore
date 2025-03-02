@@ -168,3 +168,5 @@ cython_debug/
 
 *.fls
 task2/звіт.fls
+task3/decoded
+task3/encoded
